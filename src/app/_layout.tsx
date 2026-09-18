@@ -16,6 +16,7 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: colors.background },
         }}>
         <Stack.Screen name="index" options={{ title: 'DeutschZiel · Schreiben' }} />
+        <Stack.Screen name="sprechen" options={{ title: 'DeutschZiel · Sprechen' }} />
         <Stack.Screen name="settings" options={{ title: 'Einstellungen' }} />
       </Stack>
     </ThemeProvider>

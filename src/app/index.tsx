@@ -242,11 +242,18 @@ export default function SchreibenScreen() {
       <Screen>
         <View style={styles.headerRow}>
           <ThemedText type="subtitle">Schreiben</ThemedText>
-          <Link href="/settings" asChild>
-            <Pressable>
-              <ThemedText type="linkPrimary">Einstellungen</ThemedText>
-            </Pressable>
-          </Link>
+          <View style={styles.row}>
+            <Link href="/sprechen" asChild>
+              <Pressable>
+                <ThemedText type="linkPrimary">Sprechen →</ThemedText>
+              </Pressable>
+            </Link>
+            <Link href="/settings" asChild>
+              <Pressable>
+                <ThemedText type="linkPrimary">Einstellungen</ThemedText>
+              </Pressable>
+            </Link>
+          </View>
         </View>
         <ThemedText type="small" themeColor="textSecondary">
           Goethe-Zertifikat B1 · three Aufgaben, 60 minutes total in the real exam.
@@ -482,6 +489,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   actions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
+  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   button: {
     paddingVertical: Spacing.two,
     paddingHorizontal: Spacing.four,

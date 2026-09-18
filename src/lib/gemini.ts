@@ -83,6 +83,12 @@ export async function generateJson<T>(opts: {
   system: string;
   user: string;
   schema: JsonSchema;
+  /**
+   * Audio sent alongside the prompt. The model hears the recording rather than
+   * reading a transcript of it — speech recognition silently repairs learner
+   * German, which would make grammar feedback systematically flattering.
+   */
+  audio?: { mimeType: string; base64: string };
   temperature?: number;
   maxOutputTokens?: number;
   /** Beyond this the request is abandoned rather than spinning forever. */
@@ -94,10 +100,14 @@ export async function generateJson<T>(opts: {
     system,
     user,
     schema,
+    audio,
     temperature = 0.3,
     maxOutputTokens = 8192,
     timeoutMs = 75_000,
   } = opts;
+
+  const parts: Record<string, unknown>[] = [{ text: user }];
+  if (audio) parts.push({ inlineData: { mimeType: audio.mimeType, data: audio.base64 } });
 
   // Without this a stalled request leaves the UI spinning with nothing to report.
   const controller = new AbortController();
@@ -113,7 +123,7 @@ export async function generateJson<T>(opts: {
         signal: controller.signal,
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: system }] },
-          contents: [{ role: 'user', parts: [{ text: user }] }],
+          contents: [{ role: 'user', parts }],
           generationConfig: {
             responseMimeType: 'application/json',
             responseSchema: schema,
