@@ -9,6 +9,7 @@
  * journal/ is gitignored — the repo is public and these are personal writings.
  */
 
+import type { SpeakingFeedback, SpeakingTask } from './speaking';
 import { categoryLabel } from './taxonomy';
 import type { Attempt } from './types';
 
@@ -233,16 +234,88 @@ async function countAttemptFiles(): Promise<number> {
   return n;
 }
 
-/** Writes the attempt file, then refreshes the running pattern aggregate. */
-export async function saveAttempt(attempt: Attempt): Promise<'saved' | 'downloaded'> {
-  const result = await writeFile(fileNameFor(attempt), attemptToMarkdown(attempt));
-
+/** Folds new Error categories into mistakes.md. Skill-agnostic on purpose: a
+ * case error is the same weakness whether it was written or spoken, and splitting
+ * the counts would hide exactly the pattern the aggregate exists to surface. */
+async function recordPatterns(categories: string[]): Promise<void> {
   const counts = new Map((await loadPatterns()).map((p) => [p.category, p.count]));
-  for (const mistake of attempt.feedback.mistakes) {
-    counts.set(mistake.category, (counts.get(mistake.category) ?? 0) + 1);
+  for (const category of categories) {
+    counts.set(category, (counts.get(category) ?? 0) + 1);
   }
   const merged = [...counts].map(([category, count]) => ({ category, count }));
   await writeFile('mistakes.md', patternsToMarkdown(merged, (await countAttemptFiles()) || 1));
+}
 
+/** Writes the attempt file, then refreshes the running pattern aggregate. */
+export async function saveAttempt(attempt: Attempt): Promise<'saved' | 'downloaded'> {
+  const result = await writeFile(fileNameFor(attempt), attemptToMarkdown(attempt));
+  await recordPatterns(attempt.feedback.mistakes.map((m) => m.category));
+  return result;
+}
+
+export type SpeakingAttempt = {
+  task: SpeakingTask;
+  feedback: SpeakingFeedback;
+  seconds: number;
+  createdAt: string;
+};
+
+function speakingToMarkdown(a: SpeakingAttempt): string {
+  const tick = '`';
+  const { task, feedback } = a;
+  return [
+    '---',
+    `skill: sprechen`,
+    `teil: 2`,
+    `topic: ${task.topic}`,
+    `date: ${a.createdAt}`,
+    `seconds: ${a.seconds} (target ${task.targetSeconds})`,
+    `categories: ${feedback.mistakes.map((m) => m.category).join(', ') || 'none'}`,
+    '---',
+    '',
+    `# Sprechen Teil 2 — ${task.topic}`,
+    '',
+    '## Transcript',
+    '',
+    '> What the model heard. If this reads cleaner than what you actually said, the',
+    '> grammar judgements below are unreliable.',
+    '',
+    feedback.transcript,
+    '',
+    '## Folien',
+    '',
+    ...feedback.folien.map((f) => `- ${f.covered ? '✓' : '✗'} **Folie ${f.folie}** — ${f.comment}`),
+    '',
+    '## Criteria',
+    '',
+    ...feedback.criteria.map((c) => `- **${c.criterion}** ${c.band}/3 — ${c.comment}`),
+    '',
+    '## Mistakes',
+    '',
+    ...(feedback.mistakes.length
+      ? feedback.mistakes.map(
+          (m) => `- ${tick}${m.category}${tick} **${m.said}** → **${m.correction}**\n  ${m.explanation}`,
+        )
+      : ['None found.']),
+    '',
+    '## Better phrasings',
+    '',
+    ...(feedback.betterPhrasings.length
+      ? feedback.betterPhrasings.map((p) => `- **${p.said}** → **${p.better}**\n  ${p.why}`)
+      : ['None suggested.']),
+    '',
+    '## Summary',
+    '',
+    feedback.summary,
+    '',
+  ].join('\n');
+}
+
+export async function saveSpeakingAttempt(a: SpeakingAttempt): Promise<'saved' | 'downloaded'> {
+  const d = new Date(a.createdAt);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const stamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
+  const result = await writeFile(`${stamp}-sprechen-${a.task.id}.md`, speakingToMarkdown(a));
+  await recordPatterns(a.feedback.mistakes.map((m) => m.category));
   return result;
 }
