@@ -1,6 +1,6 @@
 # DeutschZiel - Project Overview
 
-<!-- blueprint:source-hash 94998e0260e0ae162004fb31cfb97534f80eff126b33dd177c491d3f07ce7408 -->
+<!-- blueprint:source-hash e66c54a12a492bda309013e2d49302883f0fb549450972f9af719e067fe8cf01 -->
 
 > A German exam-preparation tutor that marks Schreiben and Sprechen the way a
 > Goethe examiner does, corrects at the learner's own level, and journals
@@ -74,6 +74,10 @@ gap is deliberate, because feature IDs are stable.
 - **10. Mistake pattern view** - which Error categories actually recur across
   Attempts, and their trend, not just the counts from a single Attempt.
 - **11. Re-decide the six-hour cap** - after a week of real use, extend or stop.
+- **12. Attempt history in the app** - browse past Attempts, reopen any one's
+  Feedback, and compare a first and a later Attempt on the same Task. A reading
+  surface, not new storage: `journal.ts` already writes every Attempt with its
+  full Feedback, and nothing reads it back. Shares a data source with item 10.
 
 ## Data model
 
@@ -235,11 +239,12 @@ allowlist.
 
 - **Build items 8 to 11 are inferred**, from the code and ADR 0001, not from a
   roadmap the user stated. Confirm or replace them.
-- **Sprechen Teil 2 is unreviewed.** It ships but has not been run end to end
-  against the real app. The check that matters is whether `SpeakingFeedback.
-  transcript` reads cleaner than what was actually said, because if the model
-  repairs the German on the way in, every judgement below it is unreliable.
-  Handled by `/check guide` then `/fix`, not by a build-plan item.
+- **The Sprechen transcript has not been calibrated.** Teil 2 has now been run
+  end to end against the real app and works, but the check that still matters is
+  whether `SpeakingFeedback.transcript` reads cleaner than what was actually
+  said. If the model repairs the German on the way in, every judgement below it
+  is unreliable. Only the learner can judge this, and it is not a build-plan
+  item.
 - **Sprechen Teil 1 and Teil 3 are absent** from the build plan. They need a
   simulated Partner, which was assumed out of scope for five weeks. Confirm.
 - **A stale comment contradicts the plan.** `src/lib/tasks.ts` says the official
