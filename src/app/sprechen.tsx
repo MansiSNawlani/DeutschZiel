@@ -10,6 +10,11 @@ import { blobToBase64, isRecordingSupported, startRecording, type Recorder, type
 import { GeminiError, generateJson } from '@/lib/gemini';
 import { saveSpeakingAttempt } from '@/lib/journal';
 import {
+  clearRecordingDraft,
+  loadRecordingDraft,
+  saveRecordingDraft,
+} from '@/lib/recording-draft';
+import {
   FOLIEN,
   SEED_TOPICS,
   SPEAKING_SCHEMA,
@@ -36,12 +41,23 @@ export default function SprechenScreen() {
   const [topics, setTopics] = useState<SpeakingTask[]>(SEED_TOPICS);
   const [seconds, setSeconds] = useState(0);
   const [waiting, setWaiting] = useState(0);
+  /** Which request to the model is in flight. Shown only from the second, so a
+   * resend after a busy model reads as progress rather than as the same wait
+   * going nowhere. Deliberately not called an attempt: CONTEXT.md reserves that
+   * word for one Task, one Submission and its Feedback. */
+  const [request, setRequest] = useState<{ current: number; total: number } | null>(null);
   const [recording, setRecording] = useState<Recording | null>(null);
   const [feedback, setFeedback] = useState<SpeakingFeedback | null>(null);
   const [saved, setSaved] = useState<'saved' | 'downloaded' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const recorder = useRef<Recorder | null>(null);
+  /** The restore read resolves asynchronously and must test the phase as it is
+   * by then, not the one captured when the effect first ran. */
+  const phaseRef = useRef(phase);
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
 
   useFocusEffect(
     useCallback(() => {
@@ -69,12 +85,52 @@ export default function SprechenScreen() {
     if (recording) URL.revokeObjectURL(recording.url);
   }, [recording]);
 
+  // The take outlives this screen. Opening Einstellungen unmounts the component
+  // and a reload obviously does, and re-recording a three-minute presentation is
+  // a real cost, not an inconvenience. Restoring is what makes every later
+  // failure cost a button press instead.
+  const restoreAttempted = useRef(false);
+  useEffect(() => {
+    if (restoreAttempted.current) return;
+    restoreAttempted.current = true;
+    let cancelled = false;
+    void loadRecordingDraft().then((draft) => {
+      // The read can finish after the learner has already picked a topic and
+      // started talking. Restoring then would swap the task under them, show
+      // the old recording as if it were the new one, and orphan the live
+      // recorder so the microphone never gets released.
+      if (cancelled || !draft) return;
+      if (phaseRef.current !== 'choose' || recorder.current) return;
+      setTask(draft.task);
+      setRecording({
+        wav: draft.wav,
+        url: URL.createObjectURL(draft.wav),
+        seconds: draft.seconds,
+      });
+      setSeconds(draft.seconds);
+      setPhase('review');
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const begin = useCallback((chosen: SpeakingTask) => {
+    void clearRecordingDraft();
     setTask(chosen);
     setRecording(null);
     setFeedback(null);
     setSaved(null);
     setError(null);
+    setSeconds(0);
+    setPhase('ready');
+  }, []);
+
+  /** "Noch einmal": the learner is throwing this recording away, so it must not
+   * survive on disk to be restored later as though it were still wanted. */
+  const discard = useCallback(() => {
+    void clearRecordingDraft();
+    setRecording(null);
     setSeconds(0);
     setPhase('ready');
   }, []);
@@ -98,18 +154,20 @@ export default function SprechenScreen() {
       const result = await recorder.current.stop();
       setRecording(result);
       setPhase('review');
+      if (task) void saveRecordingDraft(result, task);
     } catch (e) {
       setError(`Could not finish the recording: ${String(e)}`);
       setPhase('ready');
     } finally {
       recorder.current = null;
     }
-  }, []);
+  }, [task]);
 
   const submit = useCallback(async () => {
     if (!task || !recording || !settings) return;
     setPhase('grading');
     setError(null);
+    setRequest(null);
     try {
       const result = await generateJson<SpeakingFeedback>({
         apiKey: settings.apiKey,
@@ -120,9 +178,15 @@ export default function SprechenScreen() {
         schema: SPEAKING_SCHEMA,
         // Audio takes longer to process than text, and a three-minute take is large.
         timeoutMs: 180_000,
+        onRequest: (current, total) => setRequest({ current, total }),
       });
       setFeedback(result);
       setPhase('feedback');
+      // Cleared as soon as grading succeeds, deliberately before the journal
+      // write rather than after it. That write can fail on its own, typically a
+      // revoked folder permission, and a graded recording left behind would be
+      // restored as a finished Attempt and invite paying to grade it twice.
+      void clearRecordingDraft();
       setSaved(
         await saveSpeakingAttempt({
           task,
@@ -298,7 +362,7 @@ export default function SprechenScreen() {
                 Abgeben
               </ThemedText>
             </Pressable>
-            <Pressable onPress={() => setPhase('ready')} style={styles.quiet}>
+            <Pressable onPress={discard} style={styles.quiet}>
               <ThemedText type="small" themeColor="textSecondary">
                 Noch einmal
               </ThemedText>
@@ -312,6 +376,7 @@ export default function SprechenScreen() {
           <ActivityIndicator />
           <ThemedText type="small" themeColor="textSecondary">
             Wird angehört und bewertet… {waiting}s
+            {request && request.current > 1 ? ` · Anfrage ${request.current} von ${request.total}` : ''}
           </ThemedText>
         </View>
       )}

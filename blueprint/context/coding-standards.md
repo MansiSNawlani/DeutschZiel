@@ -96,8 +96,14 @@ Naming:
 There is no backend and no database in v0, and adding one is a v1 decision, not
 a step inside a feature.
 
-- `localStorage` for settings and the in-progress draft, always wrapped in
-  try/catch. Private browsing must degrade to a working session, not a crash.
+- `localStorage` for settings and the in-progress Schreiben draft, always
+  wrapped in try/catch. Private browsing must degrade to a working session, not
+  a crash.
+- IndexedDB for anything that will not fit there, which today means the
+  unsubmitted Sprechen recording in `recording-draft.ts`. Same try/catch
+  bargain. Give a new store its own database rather than adding a store to an
+  existing one: that would mean bumping the shared database's version, and
+  whichever module opened it first at the old version would fail.
 - Attempts are Markdown files written through the File System Access API, with
   the directory handle kept in IndexedDB. That API is Chromium only, so every
   path through it needs the download fallback.

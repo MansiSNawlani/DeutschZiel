@@ -18,13 +18,18 @@ bottom for reference only.
 - [x] 5. **Draft persistence** - the in-progress Task and text saved on every keystroke, so a reload cannot cost a timed Aufgabe
 - [x] 6. **Sprechen Teil 2** - the five-Folie presentation, recorded in the browser and assessed from the audio
 
-- [ ] 7. **Review Sprechen Teil 2** - run it against the real app and decide whether it ships as it stands or needs work, then commit it
 - [ ] 8. **Real Schreiben tasks from the official papers** - replace the placeholder seed Tasks with ones derived from the Übungssatz, holding the Modellsatz back for cold timed mocks
 - [ ] 9. **Verify the scoring against the official Bewertungskriterien** - confirm the 0-3 criterion bands, the Folien wording, and the task timings and word targets against the published papers
 - [ ] 10. **Mistake pattern view** - a screen that shows which Error categories actually recur across Attempts, and their trend, rather than only the counts shown after a single Attempt
 - [ ] 11. **Re-decide the six-hour cap** - after a week of real use, extend the tool or stop, based on whether it is being reached for unprompted
 
-> TODO (confirm): items 7-11 are inferred from the code and from ADR 0001, not
+> Item 7 was removed. It asked for Sprechen Teil 2 to be reviewed against the
+> running app, which is a verification and a decision rather than something to
+> build, so it does not belong in the list `/feature` reads. The review still
+> needs doing: use `/check guide` for the manual guide, then `/fix` for anything
+> it turns up. The numbering keeps its gap on purpose, because IDs are stable.
+
+> TODO (confirm): items 8-11 are inferred from the code and from ADR 0001, not
 > from a stated roadmap. In particular, item 8 rests on a comment in
 > `src/lib/tasks.ts` saying the official papers "are not in `Resources/` yet",
 > which is now out of date: `Resources/` holds both Modellsatz and Übungssatz
