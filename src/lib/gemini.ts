@@ -10,6 +10,21 @@
 
 const BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
+/**
+ * Only capacity and rate limiting are worth sending again. A rejected key or a
+ * rejected schema fails identically however often it is repeated, so retrying
+ * those would spend quota and delay the message that actually explains it.
+ *
+ * 503 is the common one on the free tier: the model is busy, not unwilling.
+ */
+const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+const MAX_REQUESTS = 3;
+/** One entry per gap between sends, so MAX_REQUESTS - 1 of them. Rising,
+ * because a model that is busy now is rarely free a second later. */
+const BACKOFF_MS = [2_000, 6_000];
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export type GeminiModel = {
   id: string;
   displayName: string;
@@ -93,6 +108,8 @@ export async function generateJson<T>(opts: {
   maxOutputTokens?: number;
   /** Beyond this the request is abandoned rather than spinning forever. */
   timeoutMs?: number;
+  /** Called before each send, so a resend can be told apart from a hang. */
+  onRequest?: (current: number, total: number) => void;
 }): Promise<T> {
   const {
     apiKey,
@@ -104,56 +121,70 @@ export async function generateJson<T>(opts: {
     temperature = 0.3,
     maxOutputTokens = 8192,
     timeoutMs = 75_000,
+    onRequest,
   } = opts;
 
   const parts: Record<string, unknown>[] = [{ text: user }];
   if (audio) parts.push({ inlineData: { mimeType: audio.mimeType, data: audio.base64 } });
 
-  // Without this a stalled request leaves the UI spinning with nothing to report.
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const payload = JSON.stringify({
+    systemInstruction: { parts: [{ text: system }] },
+    contents: [{ role: 'user', parts }],
+    generationConfig: {
+      responseMimeType: 'application/json',
+      responseSchema: schema,
+      temperature,
+      maxOutputTokens,
+    },
+  });
 
-  let res: Response;
-  try {
-    res = await fetch(
-      `${BASE}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: controller.signal,
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: system }] },
-          contents: [{ role: 'user', parts }],
-          generationConfig: {
-            responseMimeType: 'application/json',
-            responseSchema: schema,
-            temperature,
-            maxOutputTokens,
-          },
-        }),
-      },
-    );
-  } catch (e) {
-    if (controller.signal.aborted) {
-      throw new GeminiError(
-        `${model} did not respond within ${Math.round(timeoutMs / 1000)}s. Reasoning-heavy models can exceed this — pick a Flash model in Einstellungen, or try again.`,
+  let res: Response | undefined;
+  for (let sent = 1; sent <= MAX_REQUESTS; sent++) {
+    onRequest?.(sent, MAX_REQUESTS);
+
+    // Per send, so a resend does not have to share the previous one's budget.
+    // Without this a stalled request leaves the UI spinning with nothing to report.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      res = await fetch(
+        `${BASE}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: payload,
+        },
       );
+    } catch (e) {
+      if (controller.signal.aborted) {
+        throw new GeminiError(
+          `${model} did not respond within ${Math.round(timeoutMs / 1000)}s. Reasoning-heavy models can exceed this — pick a Flash model in Einstellungen, or try again.`,
+        );
+      }
+      throw new GeminiError(`Network error calling ${model}: ${String(e)}`);
+    } finally {
+      clearTimeout(timer);
     }
-    throw new GeminiError(`Network error calling ${model}: ${String(e)}`);
-  } finally {
-    clearTimeout(timer);
+
+    if (res.ok) break;
+
+    if (!RETRYABLE_STATUS.has(res.status) || sent === MAX_REQUESTS) {
+      const message = await readError(res);
+      if (res.status === 429) {
+        throw new GeminiError(
+          `Rate limited by the free tier. Your actual limits are shown at aistudio.google.com/rate-limit — Google no longer publishes them. (${message})`,
+          429,
+        );
+      }
+      throw new GeminiError(message, res.status);
+    }
+
+    await sleep(BACKOFF_MS[sent - 1]);
   }
 
-  if (!res.ok) {
-    const message = await readError(res);
-    if (res.status === 429) {
-      throw new GeminiError(
-        `Rate limited by the free tier. Your actual limits are shown at aistudio.google.com/rate-limit — Google no longer publishes them. (${message})`,
-        429,
-      );
-    }
-    throw new GeminiError(message, res.status);
-  }
+  if (!res) throw new GeminiError(`No response from ${model}.`);
 
   const body = (await res.json()) as {
     candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[];

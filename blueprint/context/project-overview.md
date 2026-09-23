@@ -1,6 +1,6 @@
 # DeutschZiel - Project Overview
 
-<!-- blueprint:source-hash 8cc0f84a5e31a638b4e67fcd9e0aa157b89235162e52ceb7aaf6ddc27c21ec36 -->
+<!-- blueprint:source-hash e66c54a12a492bda309013e2d49302883f0fb549450972f9af719e067fe8cf01 -->
 
 > A German exam-preparation tutor that marks Schreiben and Sprechen the way a
 > Goethe examiner does, corrects at the learner's own level, and journals
@@ -45,32 +45,39 @@ construction: there is nobody else to be, because there is no server.
 
 ## Features
 
-Build-plan order. Items 1 to 6 are shipped; 7 is next.
+Build-plan order, with the build-plan ID kept verbatim. Items 1 to 6 are
+shipped; **8 is next**. There is no item 7: it asked for Sprechen Teil 2 to be
+reviewed against the running app, which is a verification and a decision rather
+than something to build, so it was removed from the list `/feature` reads. The
+gap is deliberate, because feature IDs are stable.
 
-1. **Bring-your-own-key settings** - the learner's own Gemini key, runtime model
-   discovery, Wortliste toggle, journal folder selection. *Shipped.*
-2. **Schreiben practice loop** - choose or generate a Teil 1-3 Aufgabe, write it
-   under a timer, submit it. *Shipped.*
-3. **Tiered correction feedback** - criterion bands, the three rewrites, and
-   individually categorised mistakes. **Headline feature**, and per ADR 0001 the
-   correction prompt behind it is the one artifact expected to survive into v1.
-   *Shipped.*
-4. **Attempt journal on disk** - each Attempt written as Markdown, with Mistake
-   pattern counts folded across Attempts. *Shipped.*
-5. **Draft persistence** - Task and text saved on every keystroke, so a reload
-   cannot cost a timed Aufgabe. *Shipped.*
-6. **Sprechen Teil 2** - the five-Folie presentation, recorded in the browser and
-   assessed from the audio. *Shipped.*
-7. **Review Sprechen Teil 2** - run it against the real app, decide whether it
-   ships as it stands, then commit it. **Next.**
-8. **Real Schreiben tasks from the official papers** - replace placeholder seed
-   Tasks with ones derived from the Übungssatz, holding the Modellsatz back for
-   cold timed mocks.
-9. **Verify the scoring against the official Bewertungskriterien** - confirm the
-   0-3 band boundaries, the Folien wording, and task timings and word targets.
-10. **Mistake pattern view** - which Error categories actually recur across
-    Attempts, and their trend, not just the counts from a single Attempt.
-11. **Re-decide the six-hour cap** - after a week of real use, extend or stop.
+- **1. Bring-your-own-key settings** - the learner's own Gemini key, runtime
+  model discovery, Wortliste toggle, journal folder selection. *Shipped.*
+- **2. Schreiben practice loop** - choose or generate a Teil 1-3 Aufgabe, write
+  it under a timer, submit it. *Shipped.*
+- **3. Tiered correction feedback** - criterion bands, the three rewrites, and
+  individually categorised mistakes. **Headline feature**, and per ADR 0001 the
+  correction prompt behind it is the one artifact expected to survive into v1.
+  *Shipped.*
+- **4. Attempt journal on disk** - each Attempt written as Markdown, with
+  Mistake pattern counts folded across Attempts. *Shipped.*
+- **5. Draft persistence** - Task and text saved on every keystroke, so a reload
+  cannot cost a timed Aufgabe. *Shipped.*
+- **6. Sprechen Teil 2** - the five-Folie presentation, recorded in the browser
+  and assessed from the audio. *Shipped.*
+- **8. Real Schreiben tasks from the official papers** - replace placeholder
+  seed Tasks with ones derived from the Übungssatz, holding the Modellsatz back
+  for cold timed mocks. **Next.**
+- **9. Verify the scoring against the official Bewertungskriterien** - confirm
+  the 0-3 band boundaries, the Folien wording, and task timings and word
+  targets.
+- **10. Mistake pattern view** - which Error categories actually recur across
+  Attempts, and their trend, not just the counts from a single Attempt.
+- **11. Re-decide the six-hour cap** - after a week of real use, extend or stop.
+- **12. Attempt history in the app** - browse past Attempts, reopen any one's
+  Feedback, and compare a first and a later Attempt on the same Task. A reading
+  surface, not new storage: `journal.ts` already writes every Attempt with its
+  full Feedback, and nothing reads it back. Shares a data source with item 10.
 
 ## Data model
 
@@ -230,8 +237,14 @@ allowlist.
 
 ## Open questions
 
-- **Build items 7 to 11 are inferred**, from the code and ADR 0001, not from a
+- **Build items 8 to 11 are inferred**, from the code and ADR 0001, not from a
   roadmap the user stated. Confirm or replace them.
+- **The Sprechen transcript has not been calibrated.** Teil 2 has now been run
+  end to end against the real app and works, but the check that still matters is
+  whether `SpeakingFeedback.transcript` reads cleaner than what was actually
+  said. If the model repairs the German on the way in, every judgement below it
+  is unreliable. Only the learner can judge this, and it is not a build-plan
+  item.
 - **Sprechen Teil 1 and Teil 3 are absent** from the build plan. They need a
   simulated Partner, which was assumed out of scope for five weeks. Confirm.
 - **A stale comment contradicts the plan.** `src/lib/tasks.ts` says the official

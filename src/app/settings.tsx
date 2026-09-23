@@ -1,4 +1,4 @@
-import { Link } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
 
@@ -13,6 +13,7 @@ import { WORTLISTE_SIZE } from '@/lib/wortliste';
 
 export default function SettingsScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [models, setModels] = useState<GeminiModel[]>([]);
   const [loading, setLoading] = useState(false);
@@ -25,6 +26,14 @@ export default function SettingsScreen() {
     setSettings(loadSettings());
     void folderName().then(setFolder);
   }, []);
+
+  // This screen is reached from both Schreiben and Sprechen but used to exit
+  // only to Schreiben, which silently cost an in-progress Sprechen take:
+  // getting back to /sprechen was then a fresh navigation, not a return.
+  const leave = useCallback(() => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/');
+  }, [router]);
 
   const update = useCallback((patch: Partial<Settings>) => {
     setSettings((prev) => {
@@ -84,13 +93,9 @@ export default function SettingsScreen() {
                 ? `Bereit · ${settings.model}`
                 : 'Schlüssel und Modell fehlen noch'}
             </ThemedText>
-            <Link href="/" asChild>
-              <Pressable>
-                <ThemedText type="linkPrimary">
-                  {settings.apiKey && settings.model ? 'Zu den Aufgaben →' : 'Zurück'}
-                </ThemedText>
-              </Pressable>
-            </Link>
+            <Pressable onPress={leave} accessibilityRole="link">
+              <ThemedText type="linkPrimary">Zurück</ThemedText>
+            </Pressable>
           </View>
 
           <Card title="Gemini API-Schlüssel">
@@ -160,10 +165,17 @@ export default function SettingsScreen() {
                 ) : (
                   <>
                     <ThemedText type="small" themeColor="textSecondary">
-                      Tippe ein Modell an, um es zu übernehmen.
+                      Tippe ein Modell an, um es zu übernehmen. Das erste ist empfohlen:
+                      Flash-Modelle sind schnell und haben im kostenlosen Kontingent die
+                      meiste Kapazität, also seltener „high demand“.
                     </ThemedText>
-                    {models.slice(0, 12).map((m) => {
+                    {models.slice(0, 12).map((m, rank) => {
                       const selected = m.id === settings.model;
+                      // listModels already sorts by the ranking in gemini.ts, so
+                      // the top entry is the suggestion. Deliberately derived
+                      // rather than a hardcoded id: Google's free-tier lineup
+                      // changes often, which is why models are discovered at all.
+                      const recommended = rank === 0;
                       return (
                         <Pressable key={m.id} onPress={() => choose(m.id)}>
                           <ThemedView
@@ -179,6 +191,7 @@ export default function SettingsScreen() {
                               {m.id}
                             </ThemedText>
                             <ThemedText type="small" themeColor="textSecondary">
+                              {recommended ? 'Empfohlen · ' : ''}
                               {m.displayName}
                             </ThemedText>
                           </ThemedView>
