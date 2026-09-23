@@ -22,6 +22,13 @@ bottom for reference only.
 - [ ] 9. **Verify the scoring against the official Bewertungskriterien** - confirm the 0-3 criterion bands, the Folien wording, and the task timings and word targets against the published papers
 - [ ] 10. **Mistake pattern view** - a screen that shows which Error categories actually recur across Attempts, and their trend, rather than only the counts shown after a single Attempt
 - [ ] 11. **Re-decide the six-hour cap** - after a week of real use, extend the tool or stop, based on whether it is being reached for unprompted
+- [ ] 12. **Attempt history in the app** - browse past Attempts, reopen any one's Feedback, and compare a first and a later Attempt on the same Task
+
+> Item 12 is a reading surface, not new storage. `journal.ts` already writes
+> every Attempt to disk as Markdown, including the full Feedback; nothing in the
+> app ever reads it back, so the only way to review past Feedback today is to
+> open the files by hand. It shares its data source with item 10, so the two are
+> worth specing together or back to back.
 
 > Item 7 was removed. It asked for Sprechen Teil 2 to be reviewed against the
 > running app, which is a verification and a decision rather than something to
