@@ -1,28 +1,40 @@
 import type { Task } from './types';
 
 /**
- * Seed Schreiben tasks, shaped like Goethe B1 Aufgaben 1-3.
+ * The Schreiben Aufgaben the app practises on.
  *
- * These are PLACEHOLDERS. The agreed design (see the design session behind
- * docs/adr/0001) is that the official Modellsatz and Übungssatz tasks act as
- * few-shot exemplars for generated variations, and are themselves held back for
- * cold timed mocks in the final fortnight. Those papers are not in Resources/
- * yet. Replace `source: 'seed'` entries with real ones once they are.
+ * Source: Resources/B1_Uebungssatz_Erwachsene.pdf, page 24, transcribed as
+ * printed. The learner is sitting the adult exam, so the Jugendliche paper in
+ * Resources/ is reference material only and is never a task source.
  *
- * Timings and word targets follow the published Goethe B1 format; verify them
- * against the Modellsatz rather than trusting this file.
+ * The Modellsatz is deliberately absent. Per the design behind docs/adr/0001 the
+ * Übungssatz is both the practice set and the few-shot exemplar set that
+ * buildTaskPrompt copies, while the Modellsatz is held back so it can serve as a
+ * cold timed mock in the final fortnight. Do not add Modellsatz tasks here;
+ * `source: 'modellsatz'` stays reserved for that.
+ *
+ * `source` is 'seed' because in this codebase that means "ships in tasks.ts", as
+ * opposed to 'generated'. It no longer means placeholder.
+ *
+ * Leitpunkte: the paper prints bullets for Aufgabe 1 only. The `points` for
+ * Aufgabe 2 and Aufgabe 3 are derived from those tasks' own instructions and are
+ * marked below, because Erfüllung is scored against this list. Timings and word
+ * targets are as printed; checking them against the Bewertungskriterien is
+ * build-plan item 9.
  */
 export const SEED_TASKS: Task[] = [
   {
-    id: 'seed-t1-umzug',
+    id: 'ue-erw-t1-online-lernen',
     teil: 1,
-    title: 'Aufgabe 1 — E-Mail an eine Freundin',
+    title: 'Aufgabe 1 — E-Mail über das Online-Lernen',
     instruction:
-      'Ihre Freundin Sabine ist letzte Woche in eine andere Stadt umgezogen. Schreiben Sie ihr eine E-Mail.',
+      'Sie haben online Deutsch gelernt und berichten Ihrer Freundin/Ihrem Freund darüber.\n\n' +
+      'Achten Sie auf den Textaufbau (Anrede, Einleitung, Reihenfolge der Inhaltspunkte, Schluss).',
+    // Printed on the paper as three bullets.
     points: [
-      'Fragen Sie, wie es ihr in der neuen Wohnung geht.',
-      'Berichten Sie, was Sie letztes Wochenende gemacht haben.',
-      'Schlagen Sie vor, wann Sie sie besuchen könnten.',
+      'Beschreiben Sie: Wie haben Sie gelernt?',
+      'Begründen Sie: Welche Vorteile hat das Lernen mit dem Computer?',
+      'Machen Sie einen Vorschlag für ein Treffen.',
     ],
     register: 'informell',
     targetWords: 80,
@@ -30,32 +42,38 @@ export const SEED_TASKS: Task[] = [
     source: 'seed',
   },
   {
-    id: 'seed-t2-homeoffice',
+    id: 'ue-erw-t2-feste-arbeitszeiten',
     teil: 2,
-    title: 'Aufgabe 2 — Forumsbeitrag',
+    title: 'Aufgabe 2 — Forumsbeitrag zu Arbeitszeiten',
+    // The Gästebuch post lives in the instruction because the Aufgabe cannot be
+    // answered without it and Task has no separate stimulus field.
     instruction:
-      'Sie lesen in einem Online-Forum einen Beitrag zum Thema „Arbeiten von zu Hause aus“. Schreiben Sie Ihre Meinung dazu.',
-    points: [
-      'Nennen Sie Ihre Meinung zum Thema.',
-      'Begründen Sie Ihre Meinung mit mindestens zwei Argumenten.',
-      'Berichten Sie von einer eigenen Erfahrung.',
-    ],
+      'Sie haben im Fernsehen eine Diskussionssendung zum Thema „Feste Arbeitszeiten“ gesehen. ' +
+      'Im Online-Gästebuch der Sendung finden Sie folgende Meinung:\n\n' +
+      'Jessica, 05.01. 17:23 Uhr:\n' +
+      '„Ich arbeite von 9.00 bis 17.30 Uhr. Die festen Arbeitszeiten sind schon praktisch: ' +
+      'Ich habe einen geregelten Tagesablauf, kann pünktlich das Büro verlassen und bin für ' +
+      'Kunden immer zu erreichen. Seitdem ich zwei kleine Kinder habe, wäre ich jedoch gerne ' +
+      'flexibler.“\n\n' +
+      'Schreiben Sie nun Ihre Meinung zum Thema.',
+    // Derived: the paper prints no Leitpunkte for Aufgabe 2.
+    points: ['Nennen Sie Ihre Meinung zum Thema.', 'Begründen Sie Ihre Meinung.'],
     register: 'informell',
     targetWords: 80,
     minutes: 25,
     source: 'seed',
   },
   {
-    id: 'seed-t3-absage',
+    id: 'ue-erw-t3-kurs-absage',
     teil: 3,
-    title: 'Aufgabe 3 — Formelle E-Mail',
+    title: 'Aufgabe 3 — Absage an den Kursleiter',
     instruction:
-      'Sie können morgen nicht zu einem Termin bei Frau Dr. Weber kommen. Schreiben Sie eine E-Mail an die Praxis.',
-    points: [
-      'Entschuldigen Sie sich und sagen Sie den Termin ab.',
-      'Nennen Sie einen Grund.',
-      'Bitten Sie um einen neuen Termin.',
-    ],
+      'Sie haben sich für den Kurs „Erfolgreich präsentieren“ angemeldet. ' +
+      'Zu dem ersten Termin können Sie aber nicht kommen.\n\n' +
+      'Schreiben Sie an Ihren Kursleiter, Herrn Weber.\n' +
+      'Vergessen Sie nicht die Anrede und den Gruß am Schluss.',
+    // Derived: split from the paper's own instruction, which is not bulleted.
+    points: ['Entschuldigen Sie sich höflich.', 'Berichten Sie, warum Sie nicht kommen können.'],
     register: 'formell',
     targetWords: 40,
     minutes: 15,

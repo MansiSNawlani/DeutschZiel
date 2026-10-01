@@ -18,7 +18,7 @@ bottom for reference only.
 - [x] 5. **Draft persistence** - the in-progress Task and text saved on every keystroke, so a reload cannot cost a timed Aufgabe
 - [x] 6. **Sprechen Teil 2** - the five-Folie presentation, recorded in the browser and assessed from the audio
 
-- [ ] 8. **Real Schreiben tasks from the official papers** - replace the placeholder seed Tasks with ones derived from the Übungssatz, holding the Modellsatz back for cold timed mocks
+- [x] 8. **Real Schreiben tasks from the official papers** - replace the placeholder seed Tasks with ones derived from the Übungssatz, holding the Modellsatz back for cold timed mocks
 - [ ] 9. **Verify the scoring against the official Bewertungskriterien** - confirm the 0-3 criterion bands, the Folien wording, and the task timings and word targets against the published papers
 - [ ] 10. **Mistake pattern view** - a screen that shows which Error categories actually recur across Attempts, and their trend, rather than only the counts shown after a single Attempt
 - [ ] 11. **Re-decide the six-hour cap** - after a week of real use, extend the tool or stop, based on whether it is being reached for unprompted
