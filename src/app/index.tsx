@@ -324,9 +324,9 @@ export default function SchreibenScreen() {
         ))}
 
         <ThemedText type="small" themeColor="textSecondary" style={styles.note}>
-          These three are placeholders shaped like the real Aufgaben, and the generator copies their
-          format. Replace them with tasks from the Goethe Modellsatz once you have it — then keep the
-          official ones back for cold timed mocks and practise on generated ones.
+          These three are the Schreiben Aufgaben from the Goethe B1 Übungssatz, and the generator
+          copies their format. The Modellsatz is held back on purpose, so it is still cold when you
+          use it as a timed mock.
         </ThemedText>
       </Screen>
     );

@@ -148,3 +148,9 @@ Official Goethe sample papers and exam information are used as a reference for
 format and difficulty, not copied out. Coursebooks stay on the machine of the
 person who owns them. Generated practice material is original, produced in the
 shape of the real tasks.
+
+## License
+
+MIT, see [`LICENSE`](LICENSE). The license covers the code in this repository
+only. It does not extend to the exam papers, coursebooks or personal writing
+described above, which are not part of the repository.
