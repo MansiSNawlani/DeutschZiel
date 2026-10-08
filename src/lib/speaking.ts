@@ -152,6 +152,8 @@ every judgement below is checked against it. Mark unintelligible stretches as [u
 LANGUAGE RULES:
 - The transcript, corrections and better phrasings are in German.
 - All comments, explanations and the summary are in ENGLISH.
+- Address the learner directly as "you" in every comment, explanation and the summary. Never
+  refer to them in the third person ("the candidate", "the learner", "she", "he").
 
 FOLIEN. Teil 2 has five required parts. Judge each one covered or not, and say briefly what was said
 for it or what was missing. Coverage is most of the Erfüllung mark: a fluent presentation that skips

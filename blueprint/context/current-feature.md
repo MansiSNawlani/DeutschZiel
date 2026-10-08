@@ -3,7 +3,7 @@
 **From build-plan:** feature 9
 **Build attempt:** 1
 **Branch:** feature/verify-the-scoring-against-the-official-bewertungskriterien
-**Status:** implemented
+**Status:** verified
 
 ## Goal
 
@@ -115,6 +115,22 @@ the end. `checkpointCommits` is disabled, so `/complete` makes the only commit.
   "approximation" or "unverified".
   *Done when:* `grep -rniE "approximation|item 9|verify the folien" src` returns
   nothing, and tsc and lint pass.
+
+### Addendum: two fixes found during /check, added at the user's request
+
+- [x] **4. Journal filenames to the second.** `fileNameFor` and
+  `saveSpeakingAttempt` stamped only to the minute, and `writeFile` overwrites.
+  A second Attempt on the same Task within a minute replaced the first. Both
+  now share `fileStamp`, which adds seconds.
+  *Done when:* two Attempts on the same Task a few seconds apart produce two
+  journal files. Observed: `...-122327-...` and `...-122336-...`.
+
+- [x] **5. Feedback addresses the learner as "you".** A live Sprechen run said
+  "her presentation", because the prompt calls the learner "the candidate" and
+  never says how to address them. Both system prompts now tell the model to
+  write "you" and never use the third person.
+  *Done when:* both system prompts carry the rule (observed in the captured
+  requests) and a live run's comments say "you".
 
 ## Files / areas
 

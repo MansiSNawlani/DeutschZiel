@@ -138,11 +138,18 @@ function download(name: string, content: string): void {
   URL.revokeObjectURL(url);
 }
 
-function fileNameFor(attempt: Attempt): string {
-  const d = new Date(attempt.createdAt);
+/**
+ * Down to the second, because writeFile overwrites: with minutes only, a
+ * second Attempt on the same Task inside one minute replaced the first.
+ */
+function fileStamp(createdAt: string): string {
+  const d = new Date(createdAt);
   const pad = (n: number) => String(n).padStart(2, '0');
-  const stamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
-  return `${stamp}-${attempt.task.id}.md`;
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+}
+
+function fileNameFor(attempt: Attempt): string {
+  return `${fileStamp(attempt.createdAt)}-${attempt.task.id}.md`;
 }
 
 /**
@@ -344,10 +351,7 @@ function speakingToMarkdown(a: SpeakingAttempt): string {
 }
 
 export async function saveSpeakingAttempt(a: SpeakingAttempt): Promise<'saved' | 'downloaded'> {
-  const d = new Date(a.createdAt);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const stamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
-  const result = await writeFile(`${stamp}-sprechen-${a.task.id}.md`, speakingToMarkdown(a));
+  const result = await writeFile(`${fileStamp(a.createdAt)}-sprechen-${a.task.id}.md`, speakingToMarkdown(a));
   await recordPatterns(a.feedback.mistakes.map((m) => m.category));
   return result;
 }
