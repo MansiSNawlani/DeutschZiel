@@ -10,7 +10,13 @@
  * Kandidatenblatt, which agree with each other.
  */
 
-import { BANDS, SPRECHEN_TEIL2_KRITERIEN, type Band, type SprechenCriterion } from './bewertung';
+import {
+  BANDS,
+  SPRECHEN_CRITERIA,
+  SPRECHEN_TEIL2_KRITERIEN,
+  type Band,
+  type SprechenCriterion,
+} from './bewertung';
 import type { JsonSchema } from './gemini';
 import { ERROR_CATEGORY_IDS, taxonomyForPrompt } from './taxonomy';
 import type { ErrorCategoryId } from './taxonomy';
@@ -94,7 +100,7 @@ export const SPEAKING_SCHEMA: JsonSchema = {
         properties: {
           criterion: {
             type: 'STRING',
-            enum: ['Erfüllung', 'Kohärenz', 'Wortschatz', 'Strukturen', 'Aussprache'],
+            enum: [...SPRECHEN_CRITERIA],
           },
           band: { type: 'STRING', enum: [...BANDS] },
           comment: { type: 'STRING' },

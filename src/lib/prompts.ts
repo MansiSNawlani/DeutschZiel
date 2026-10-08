@@ -1,4 +1,4 @@
-import { BANDS, SCHREIBEN_KRITERIEN } from './bewertung';
+import { BANDS, SCHREIBEN_CRITERIA, SCHREIBEN_KRITERIEN } from './bewertung';
 import { ERROR_CATEGORY_IDS, taxonomyForPrompt } from './taxonomy';
 import type { JsonSchema } from './gemini';
 import type { Task } from './types';
@@ -19,7 +19,7 @@ export const FEEDBACK_SCHEMA: JsonSchema = {
       items: {
         type: 'OBJECT',
         properties: {
-          criterion: { type: 'STRING', enum: ['Erfüllung', 'Kohärenz', 'Wortschatz', 'Strukturen'] },
+          criterion: { type: 'STRING', enum: [...SCHREIBEN_CRITERIA] },
           band: { type: 'STRING', enum: [...BANDS] },
           comment: { type: 'STRING' },
         },

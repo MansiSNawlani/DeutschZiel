@@ -19,8 +19,8 @@ import type { Task } from './types';
  * Leitpunkte: the paper prints bullets for Aufgabe 1 only. The `points` for
  * Aufgabe 2 and Aufgabe 3 are derived from those tasks' own instructions and are
  * marked below, because Erfüllung is scored against this list. Timings (20, 25
- * and 15 minutes) and word targets (circa 80, 80 and 40) are as printed, and
- * match the Modellsatz.
+ * and 15 minutes) and word targets (circa 80, 80 and 40) are as printed in the
+ * Übungssatz, and match the Modellsatz.
  */
 export const SEED_TASKS: Task[] = [
   {

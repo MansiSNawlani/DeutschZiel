@@ -5,7 +5,16 @@ import { ThemedView } from './themed-view';
 
 import { Spacing, type ThemeColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { BANDS, type Band, aufgabeTotal, bandPoints, bandTone, formatPoints, schreibenMax } from '@/lib/bewertung';
+import {
+  BANDS,
+  type Band,
+  type Total,
+  bandPoints,
+  bandTone,
+  formatPoints,
+  schreibenMax,
+  schreibenTotal,
+} from '@/lib/bewertung';
 import { ERROR_GROUPS, categoryById } from '@/lib/taxonomy';
 import type { Feedback, Task } from '@/lib/types';
 import { aboveB1 } from '@/lib/wortliste';
@@ -34,7 +43,7 @@ export function FeedbackView({ feedback, task }: { feedback: Feedback; task: Tas
             </ThemedText>
           </View>
         ))}
-        <Total feedback={feedback} task={task} />
+        <TotalRow label={`Aufgabe ${task.teil}`} total={schreibenTotal(task.teil, feedback.criteria)} />
       </Section>
 
       <Tier
@@ -199,7 +208,7 @@ function Tier({
   );
 }
 
-/** Five segments, one per band: A fills all five, E fills none. */
+/** Four segments: A fills all four, each band below empties one, E is empty. */
 export function Bands({ band, max }: { band: Band; max: number }) {
   const theme = useTheme();
   const colour = theme[bandTone(band)];
@@ -221,12 +230,10 @@ export function Bands({ band, max }: { band: Band; max: number }) {
   );
 }
 
-function Total({ feedback, task }: { feedback: Feedback; task: Task }) {
-  const { points, max, zeroed } = aufgabeTotal(feedback.criteria, (c) => schreibenMax(task.teil, c));
-
+export function TotalRow({ label, total: { points, max, zeroed } }: { label: string; total: Total }) {
   return (
     <View style={[styles.criterionHead, styles.total]}>
-      <ThemedText type="smallBold">Aufgabe {task.teil}</ThemedText>
+      <ThemedText type="smallBold">{label}</ThemedText>
       <ThemedText type="code" themeColor={zeroed ? 'danger' : 'text'}>
         {formatPoints(points)} / {max}
         {zeroed ? '  (Erfüllung E)' : ''}

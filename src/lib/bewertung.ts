@@ -11,11 +11,15 @@
 export const BANDS = ['A', 'B', 'C', 'D', 'E'] as const;
 export type Band = (typeof BANDS)[number];
 
-export type SchreibenCriterion = 'Erfüllung' | 'Kohärenz' | 'Wortschatz' | 'Strukturen';
-export type SprechenCriterion = SchreibenCriterion | 'Aussprache';
+export const SCHREIBEN_CRITERIA = ['Erfüllung', 'Kohärenz', 'Wortschatz', 'Strukturen'] as const;
+export type SchreibenCriterion = (typeof SCHREIBEN_CRITERIA)[number];
+
+/** Sprechen Teil 2 has the same four as Schreiben, plus Aussprache for the whole Module. */
+export const SPRECHEN_CRITERIA = [...SCHREIBEN_CRITERIA, 'Aussprache'] as const;
+export type SprechenCriterion = (typeof SPRECHEN_CRITERIA)[number];
 
 /** Every table on the Bewertungsbogen steps down in quarters of the maximum. */
-const SHARE: Record<Band, number> = { A: 1, B: 0.75, C: 0.5, D: 0.25, E: 0 };
+const BAND_SHARE: Record<Band, number> = { A: 1, B: 0.75, C: 0.5, D: 0.25, E: 0 };
 
 const SCHREIBEN_MAX: Record<1 | 2 | 3, Record<SchreibenCriterion, number>> = {
   1: { Erfüllung: 10, Kohärenz: 10, Wortschatz: 10, Strukturen: 10 },
@@ -41,18 +45,37 @@ export function sprechenMax(criterion: SprechenCriterion): number {
 }
 
 export function bandPoints(band: Band, max: number): number {
-  return SHARE[band] * max;
+  return BAND_SHARE[band] * max;
 }
 
-/** Sums the points, applying the rule that Erfüllung E zeroes the Aufgabe. */
-export function aufgabeTotal<C extends string>(
-  criteria: { criterion: C; band: Band }[],
-  maxOf: (criterion: C) => number,
-): { points: number; max: number; zeroed: boolean } {
-  const max = criteria.reduce((sum, c) => sum + maxOf(c.criterion), 0);
-  const zeroed = criteria.some((c) => c.criterion === 'Erfüllung' && c.band === 'E');
-  const points = zeroed ? 0 : criteria.reduce((sum, c) => sum + bandPoints(c.band, maxOf(c.criterion)), 0);
-  return { points, max, zeroed };
+export type Total = { points: number; max: number; zeroed: boolean };
+type Scored = { criterion: string; band: Band };
+
+/**
+ * The maximum comes from the official criteria, not from what the model
+ * returned, so a criterion it leaves out scores 0 instead of shrinking the
+ * maximum. Erfüllung E zeroes the whole Aufgabe.
+ */
+function total<C extends string>(criteria: readonly C[], scored: Scored[], maxOf: (c: C) => number): Total {
+  let points = 0;
+  let max = 0;
+  let zeroed = false;
+  for (const criterion of criteria) {
+    const band = scored.find((s) => s.criterion === criterion)?.band;
+    max += maxOf(criterion);
+    if (band) points += bandPoints(band, maxOf(criterion));
+    if (criterion === 'Erfüllung' && band === 'E') zeroed = true;
+  }
+  return { points: zeroed ? 0 : points, max, zeroed };
+}
+
+export function schreibenTotal(teil: 1 | 2 | 3, scored: Scored[]): Total {
+  return total(SCHREIBEN_CRITERIA, scored, (c) => schreibenMax(teil, c));
+}
+
+/** Aussprache is scored for the whole Module, so it stays out of the Teil 2 total. */
+export function sprechenTeil2Total(scored: Scored[]): Total {
+  return total(SCHREIBEN_CRITERIA, scored, sprechenMax);
 }
 
 /** German decimal comma, as the Bewertungsbogen prints it: 7,5. */
@@ -110,7 +133,6 @@ export const SPRECHEN_TEIL2_KRITERIEN = `Erfüllung (Vollständigkeit, Inhalt, U
 
 Kohärenz (Verknüpfung von Sätzen und Satzteilen, nachvollziehbarer Gedankengang):
 - angemessen | überwiegend angemessen | teilweise angemessen | kaum angemessen
-- E: Äußerung größtenteils unverständlich
 
 Wortschatz:
 - Register: ${REGISTER}

@@ -2,13 +2,13 @@ import { Link, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { Bands } from '@/components/feedback-view';
+import { Bands, TotalRow } from '@/components/feedback-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { blobToBase64, isRecordingSupported, startRecording, type Recorder, type Recording } from '@/lib/audio';
-import { aufgabeTotal, formatPoints, sprechenMax } from '@/lib/bewertung';
+import { sprechenMax, sprechenTeil2Total } from '@/lib/bewertung';
 import { GeminiError, generateJson } from '@/lib/gemini';
 import { saveSpeakingAttempt } from '@/lib/journal';
 import {
@@ -396,9 +396,8 @@ function SpeakingFeedbackView({
   saved: 'saved' | 'downloaded' | null;
 }) {
   const theme = useTheme();
-  const teil2 = feedback.criteria.filter((c) => c.criterion !== 'Aussprache');
+  const teil2Criteria = feedback.criteria.filter((c) => c.criterion !== 'Aussprache');
   const aussprache = feedback.criteria.find((c) => c.criterion === 'Aussprache');
-  const total = aufgabeTotal(teil2, sprechenMax);
 
   return (
     <View style={styles.stack}>
@@ -449,7 +448,7 @@ function SpeakingFeedbackView({
         <ThemedText type="smallBold" themeColor="primary" style={styles.sectionTitle}>
           BEWERTUNG
         </ThemedText>
-        {teil2.map((c) => (
+        {teil2Criteria.map((c) => (
           <View key={c.criterion} style={styles.folie}>
             <View style={styles.criterionHead}>
               <ThemedText type="smallBold">{c.criterion}</ThemedText>
@@ -460,13 +459,7 @@ function SpeakingFeedbackView({
             </ThemedText>
           </View>
         ))}
-        <View style={styles.criterionHead}>
-          <ThemedText type="smallBold">Teil 2</ThemedText>
-          <ThemedText type="code" themeColor={total.zeroed ? 'danger' : 'text'}>
-            {formatPoints(total.points)} / {total.max}
-            {total.zeroed ? '  (Erfüllung E)' : ''}
-          </ThemedText>
-        </View>
+        <TotalRow label="Teil 2" total={sprechenTeil2Total(feedback.criteria)} />
         {aussprache && (
           <View style={[styles.folie, styles.apart, { borderTopColor: theme.border }]}>
             <View style={styles.criterionHead}>

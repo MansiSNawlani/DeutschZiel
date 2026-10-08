@@ -9,7 +9,16 @@
  * journal/ is gitignored — the repo is public and these are personal writings.
  */
 
-import { type Band, aufgabeTotal, bandPoints, formatPoints, schreibenMax, sprechenMax } from './bewertung';
+import {
+  type Band,
+  type Total,
+  bandPoints,
+  formatPoints,
+  schreibenMax,
+  schreibenTotal,
+  sprechenMax,
+  sprechenTeil2Total,
+} from './bewertung';
 import type { SpeakingFeedback, SpeakingTask } from './speaking';
 import { categoryLabel } from './taxonomy';
 import type { Attempt } from './types';
@@ -143,12 +152,8 @@ function fileNameFor(attempt: Attempt): string {
 function criteriaToMarkdown<C extends string>(
   criteria: { criterion: C; band: Band; comment: string }[],
   maxOf: (criterion: C) => number,
-  inTotal: (criterion: C) => boolean = () => true,
+  { points, max }: Total,
 ): string[] {
-  const { points, max } = aufgabeTotal(
-    criteria.filter((c) => inTotal(c.criterion)),
-    maxOf,
-  );
   return [
     ...criteria.map((c) => {
       const cMax = maxOf(c.criterion);
@@ -183,7 +188,11 @@ export function attemptToMarkdown(a: Attempt): string {
     '',
     '## Criteria',
     '',
-    ...criteriaToMarkdown(feedback.criteria, (c) => schreibenMax(task.teil, c)),
+    ...criteriaToMarkdown(
+      feedback.criteria,
+      (c) => schreibenMax(task.teil, c),
+      schreibenTotal(task.teil, feedback.criteria),
+    ),
     '',
     '## Correct',
     '',
@@ -311,7 +320,7 @@ function speakingToMarkdown(a: SpeakingAttempt): string {
     '',
     '## Criteria',
     '',
-    ...criteriaToMarkdown(feedback.criteria, sprechenMax, (c) => c !== 'Aussprache'),
+    ...criteriaToMarkdown(feedback.criteria, sprechenMax, sprechenTeil2Total(feedback.criteria)),
     '',
     '## Mistakes',
     '',
