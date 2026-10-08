@@ -6,20 +6,21 @@
  * and coverage of them is most of the Erfüllung mark — a fluent presentation
  * that skips Folie 3 scores worse than a hesitant one that covers all five.
  *
- * Verify the Folien wording against your Modellsatz; this is the published
- * structure but the exact phrasing on the candidate sheet is what counts.
+ * The Folien are worded exactly as on the Übungssatz and Modellsatz
+ * Kandidatenblatt, which agree with each other.
  */
 
+import { BANDS, SPRECHEN_TEIL2_KRITERIEN, type Band, type SprechenCriterion } from './bewertung';
 import type { JsonSchema } from './gemini';
 import { ERROR_CATEGORY_IDS, taxonomyForPrompt } from './taxonomy';
 import type { ErrorCategoryId } from './taxonomy';
 
 export const FOLIEN = [
-  'Nennen Sie das Thema und sagen Sie, warum es Sie interessiert.',
-  'Berichten Sie von Ihren eigenen Erfahrungen mit dem Thema.',
-  'Berichten Sie, wie die Situation in Ihrem Heimatland ist.',
-  'Nennen Sie Vor- und Nachteile und sagen Sie Ihre eigene Meinung.',
-  'Beenden Sie Ihre Präsentation und bedanken Sie sich.',
+  'Stellen Sie Ihr Thema vor. Erklären Sie den Inhalt und die Struktur Ihrer Präsentation.',
+  'Berichten Sie von Ihrer Situation oder einem Erlebnis im Zusammenhang mit dem Thema.',
+  'Berichten Sie von der Situation in Ihrem Heimatland und geben Sie Beispiele.',
+  'Nennen Sie die Vor- und Nachteile und sagen Sie dazu Ihre Meinung. Geben Sie auch Beispiele.',
+  'Beenden Sie Ihre Präsentation und bedanken Sie sich bei den Zuhörern.',
 ] as const;
 
 export type SpeakingTask = {
@@ -63,7 +64,7 @@ export type SpeakingFeedback = {
    */
   transcript: string;
   folien: FolieCoverage[];
-  criteria: { criterion: string; band: number; comment: string }[];
+  criteria: { criterion: SprechenCriterion; band: Band; comment: string }[];
   mistakes: SpokenMistake[];
   /** Specific things said, with a better way to say them. */
   betterPhrasings: { said: string; better: string; why: string }[];
@@ -95,7 +96,7 @@ export const SPEAKING_SCHEMA: JsonSchema = {
             type: 'STRING',
             enum: ['Erfüllung', 'Kohärenz', 'Wortschatz', 'Strukturen', 'Aussprache'],
           },
-          band: { type: 'INTEGER' },
+          band: { type: 'STRING', enum: [...BANDS] },
           comment: { type: 'STRING' },
         },
         required: ['criterion', 'band', 'comment'],
@@ -151,9 +152,15 @@ for it or what was missing. Coverage is most of the Erfüllung mark: a fluent pr
 a Folie scores worse than a hesitant one that covers all five.
 ${FOLIEN.map((f, i) => `${i + 1}. ${f}`).join('\n')}
 
-CRITERIA. Band 0-3, where 3 is best, for Erfüllung, Kohärenz, Wortschatz, Strukturen and Aussprache.
-Judge Aussprache and fluency from the audio itself — pace, pausing, stress, intelligibility — not
-from the transcript. Say plainly when something was hard to understand.
+CRITERIA. Score Erfüllung, Kohärenz, Wortschatz, Strukturen and Aussprache with a band from A to E,
+exactly as the official examiner does, using the official Bewertungskriterien below. A is the best
+band. Each line lists the descriptors for A | B | C | D in that order. E is listed separately. Where
+a criterion has several aspects, choose the band that best fits all of them together. Erfüllung
+follows from the Folien: count how many were treated adequately in content and length.
+${SPRECHEN_TEIL2_KRITERIEN}
+Judge Aussprache from the audio itself (pace, pausing, stress, intelligibility), not from the
+transcript. Say plainly when something was hard to understand. Write each comment in English and
+name the descriptor that decided the band.
 
 MISTAKES. Every error as a separate entry, with the candidate's own words in "said", quoted exactly
 as they appear in your transcript. Classify each into exactly one id from this closed list:

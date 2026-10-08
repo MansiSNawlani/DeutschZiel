@@ -9,6 +9,7 @@
  * journal/ is gitignored — the repo is public and these are personal writings.
  */
 
+import { type Band, aufgabeTotal, bandPoints, formatPoints, schreibenMax, sprechenMax } from './bewertung';
 import type { SpeakingFeedback, SpeakingTask } from './speaking';
 import { categoryLabel } from './taxonomy';
 import type { Attempt } from './types';
@@ -135,6 +136,28 @@ function fileNameFor(attempt: Attempt): string {
   return `${stamp}-${attempt.task.id}.md`;
 }
 
+/**
+ * Entries written before the A-E bands keep their old `n/3` lines; anything
+ * that reads criteria back has to accept both.
+ */
+function criteriaToMarkdown<C extends string>(
+  criteria: { criterion: C; band: Band; comment: string }[],
+  maxOf: (criterion: C) => number,
+  inTotal: (criterion: C) => boolean = () => true,
+): string[] {
+  const { points, max } = aufgabeTotal(
+    criteria.filter((c) => inTotal(c.criterion)),
+    maxOf,
+  );
+  return [
+    ...criteria.map((c) => {
+      const cMax = maxOf(c.criterion);
+      return `- **${c.criterion}** ${c.band} (${formatPoints(bandPoints(c.band, cMax))}/${cMax}) - ${c.comment}`;
+    }),
+    `- **Total** ${formatPoints(points)} / ${max}`,
+  ];
+}
+
 export function attemptToMarkdown(a: Attempt): string {
   const { task, feedback } = a;
   const tick = '`';
@@ -160,7 +183,7 @@ export function attemptToMarkdown(a: Attempt): string {
     '',
     '## Criteria',
     '',
-    ...feedback.criteria.map((c) => `- **${c.criterion}** ${c.band}/3 — ${c.comment}`),
+    ...criteriaToMarkdown(feedback.criteria, (c) => schreibenMax(task.teil, c)),
     '',
     '## Correct',
     '',
@@ -288,7 +311,7 @@ function speakingToMarkdown(a: SpeakingAttempt): string {
     '',
     '## Criteria',
     '',
-    ...feedback.criteria.map((c) => `- **${c.criterion}** ${c.band}/3 — ${c.comment}`),
+    ...criteriaToMarkdown(feedback.criteria, sprechenMax, (c) => c !== 'Aussprache'),
     '',
     '## Mistakes',
     '',
