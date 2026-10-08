@@ -1,3 +1,4 @@
+import type { Band, SchreibenCriterion } from './bewertung';
 import type { ErrorCategoryId } from './taxonomy';
 
 /** See CONTEXT.md — a Task is the thing to do, not the thing produced. */
@@ -16,14 +17,10 @@ export type Task = {
   source: 'seed' | 'generated' | 'modellsatz';
 };
 
-/**
- * One of the named Goethe criteria. Bands run 0-3 mirroring the official
- * descriptor levels, but the exact band boundaries must be checked against the
- * Bewertungskriterien in the Modellsatz — this is an approximation until then.
- */
+/** One of the named Goethe criteria, banded A-E as in src/lib/bewertung.ts. */
 export type CriterionScore = {
-  criterion: 'Erfüllung' | 'Kohärenz' | 'Wortschatz' | 'Strukturen';
-  band: number;
+  criterion: SchreibenCriterion;
+  band: Band;
   comment: string;
 };
 

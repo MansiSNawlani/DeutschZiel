@@ -5,11 +5,19 @@ import { ThemedView } from './themed-view';
 
 import { Spacing, type ThemeColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import {
+  BANDS,
+  type Band,
+  type Total,
+  bandPoints,
+  bandTone,
+  formatPoints,
+  schreibenMax,
+  schreibenTotal,
+} from '@/lib/bewertung';
 import { ERROR_GROUPS, categoryById } from '@/lib/taxonomy';
 import type { Feedback, Task } from '@/lib/types';
 import { aboveB1 } from '@/lib/wortliste';
-
-const BAND_MAX = 3;
 
 /**
  * Criteria first, rewrites second. With five weeks to an exam the band scores
@@ -28,17 +36,14 @@ export function FeedbackView({ feedback, task }: { feedback: Feedback; task: Tas
           <View key={c.criterion} style={styles.criterion}>
             <View style={styles.criterionHead}>
               <ThemedText type="smallBold">{c.criterion}</ThemedText>
-              <Bands band={c.band} />
+              <Bands band={c.band} max={schreibenMax(task.teil, c.criterion)} />
             </View>
             <ThemedText type="small" themeColor="textSecondary">
               {c.comment}
             </ThemedText>
           </View>
         ))}
-        <ThemedText type="small" themeColor="textSecondary" style={styles.caveat}>
-          Bands are an approximation of the official Bewertungskriterien, not the real thing. Check
-          them against the Modellsatz.
-        </ThemedText>
+        <TotalRow label={`Aufgabe ${task.teil}`} total={schreibenTotal(task.teil, feedback.criteria)} />
       </Section>
 
       <Tier
@@ -203,22 +208,35 @@ function Tier({
   );
 }
 
-/** Band colour is the score: 3 is earned, 2 is close, 0-1 is where marks leak. */
-function Bands({ band }: { band: number }) {
+/** Four segments: A fills all four, each band below empties one, E is empty. */
+export function Bands({ band, max }: { band: Band; max: number }) {
   const theme = useTheme();
-  const colour = band >= BAND_MAX ? theme.success : band === 2 ? theme.warning : theme.danger;
+  const colour = theme[bandTone(band)];
+  const filled = BANDS.length - 1 - BANDS.indexOf(band);
 
   return (
     <View style={styles.bands}>
-      {Array.from({ length: BAND_MAX }, (_, i) => (
+      {BANDS.slice(1).map((b, i) => (
         <View
-          key={i}
-          style={[styles.band, { backgroundColor: i < band ? colour : theme.backgroundSelected }]}
+          key={b}
+          style={[styles.band, { backgroundColor: i < filled ? colour : theme.backgroundSelected }]}
         />
       ))}
       <ThemedText type="code" style={{ color: colour }}>
         {'  '}
-        {band}/{BAND_MAX}
+        {band} · {formatPoints(bandPoints(band, max))}/{max}
+      </ThemedText>
+    </View>
+  );
+}
+
+export function TotalRow({ label, total: { points, max, zeroed } }: { label: string; total: Total }) {
+  return (
+    <View style={[styles.criterionHead, styles.total]}>
+      <ThemedText type="smallBold">{label}</ThemedText>
+      <ThemedText type="code" themeColor={zeroed ? 'danger' : 'text'}>
+        {formatPoints(points)} / {max}
+        {zeroed ? '  (Erfüllung E)' : ''}
       </ThemedText>
     </View>
   );
@@ -253,5 +271,5 @@ const styles = StyleSheet.create({
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: Spacing.one },
   chip: { paddingHorizontal: Spacing.two, paddingVertical: 2, borderRadius: Spacing.two },
   wrong: { textDecorationLine: 'line-through' },
-  caveat: { marginTop: Spacing.one },
+  total: { marginTop: Spacing.one },
 });

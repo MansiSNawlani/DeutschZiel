@@ -9,6 +9,16 @@
  * journal/ is gitignored — the repo is public and these are personal writings.
  */
 
+import {
+  type Band,
+  type Total,
+  bandPoints,
+  formatPoints,
+  schreibenMax,
+  schreibenTotal,
+  sprechenMax,
+  sprechenTeil2Total,
+} from './bewertung';
 import type { SpeakingFeedback, SpeakingTask } from './speaking';
 import { categoryLabel } from './taxonomy';
 import type { Attempt } from './types';
@@ -128,11 +138,36 @@ function download(name: string, content: string): void {
   URL.revokeObjectURL(url);
 }
 
-function fileNameFor(attempt: Attempt): string {
-  const d = new Date(attempt.createdAt);
+/**
+ * Down to the second, because writeFile overwrites: with minutes only, a
+ * second Attempt on the same Task inside one minute replaced the first.
+ */
+function fileStamp(createdAt: string): string {
+  const d = new Date(createdAt);
   const pad = (n: number) => String(n).padStart(2, '0');
-  const stamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
-  return `${stamp}-${attempt.task.id}.md`;
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+}
+
+function fileNameFor(attempt: Attempt): string {
+  return `${fileStamp(attempt.createdAt)}-${attempt.task.id}.md`;
+}
+
+/**
+ * Entries written before the A-E bands keep their old `n/3` lines; anything
+ * that reads criteria back has to accept both.
+ */
+function criteriaToMarkdown<C extends string>(
+  criteria: { criterion: C; band: Band; comment: string }[],
+  maxOf: (criterion: C) => number,
+  { points, max }: Total,
+): string[] {
+  return [
+    ...criteria.map((c) => {
+      const cMax = maxOf(c.criterion);
+      return `- **${c.criterion}** ${c.band} (${formatPoints(bandPoints(c.band, cMax))}/${cMax}) - ${c.comment}`;
+    }),
+    `- **Total** ${formatPoints(points)} / ${max}`,
+  ];
 }
 
 export function attemptToMarkdown(a: Attempt): string {
@@ -160,7 +195,11 @@ export function attemptToMarkdown(a: Attempt): string {
     '',
     '## Criteria',
     '',
-    ...feedback.criteria.map((c) => `- **${c.criterion}** ${c.band}/3 — ${c.comment}`),
+    ...criteriaToMarkdown(
+      feedback.criteria,
+      (c) => schreibenMax(task.teil, c),
+      schreibenTotal(task.teil, feedback.criteria),
+    ),
     '',
     '## Correct',
     '',
@@ -288,7 +327,7 @@ function speakingToMarkdown(a: SpeakingAttempt): string {
     '',
     '## Criteria',
     '',
-    ...feedback.criteria.map((c) => `- **${c.criterion}** ${c.band}/3 — ${c.comment}`),
+    ...criteriaToMarkdown(feedback.criteria, sprechenMax, sprechenTeil2Total(feedback.criteria)),
     '',
     '## Mistakes',
     '',
@@ -312,10 +351,7 @@ function speakingToMarkdown(a: SpeakingAttempt): string {
 }
 
 export async function saveSpeakingAttempt(a: SpeakingAttempt): Promise<'saved' | 'downloaded'> {
-  const d = new Date(a.createdAt);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const stamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
-  const result = await writeFile(`${stamp}-sprechen-${a.task.id}.md`, speakingToMarkdown(a));
+  const result = await writeFile(`${fileStamp(a.createdAt)}-sprechen-${a.task.id}.md`, speakingToMarkdown(a));
   await recordPatterns(a.feedback.mistakes.map((m) => m.category));
   return result;
 }

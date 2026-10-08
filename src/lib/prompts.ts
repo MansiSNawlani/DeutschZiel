@@ -1,3 +1,4 @@
+import { BANDS, SCHREIBEN_CRITERIA, SCHREIBEN_KRITERIEN } from './bewertung';
 import { ERROR_CATEGORY_IDS, taxonomyForPrompt } from './taxonomy';
 import type { JsonSchema } from './gemini';
 import type { Task } from './types';
@@ -18,8 +19,8 @@ export const FEEDBACK_SCHEMA: JsonSchema = {
       items: {
         type: 'OBJECT',
         properties: {
-          criterion: { type: 'STRING', enum: ['Erfüllung', 'Kohärenz', 'Wortschatz', 'Strukturen'] },
-          band: { type: 'INTEGER' },
+          criterion: { type: 'STRING', enum: [...SCHREIBEN_CRITERIA] },
+          band: { type: 'STRING', enum: [...BANDS] },
           comment: { type: 'STRING' },
         },
         required: ['criterion', 'band', 'comment'],
@@ -110,14 +111,18 @@ LANGUAGE RULES — these are not stylistic preferences, follow them exactly:
 - All German artifacts (the three rewrites, quoted spans, corrections) are in German.
 - All explanations, comments and the summary are in ENGLISH. The learner is at B1 and reading a
   grammar rule in German costs comprehension effort that teaches them nothing.
+- Address the learner directly as "you" in every comment, explanation and the summary. Never
+  refer to them in the third person ("the candidate", "the learner", "she", "he").
 
-CRITERIA. Score each of the four Goethe criteria with a band from 0 to 3, where 3 is the best.
-- Erfüllung: were all the required Leitpunkte addressed, at appropriate length, in the right register?
-- Kohärenz: is it ordered and connected, with appropriate connectors and a sensible opening and closing?
-- Wortschatz: is the vocabulary adequate, varied and correctly used for B1?
-- Strukturen: is the grammar correct and varied enough for B1?
-A submission can be flawless German and still band 0 on Erfüllung by missing a Leitpunkt or using the
-wrong register. Judge Erfüllung against the task, not against the quality of the German.
+CRITERIA. Score each of the four Goethe criteria with a band from A to E, exactly as the official
+examiner does, using the official Bewertungskriterien below. A is the best band. Each line lists
+the descriptors for A | B | C | D in that order. E is listed separately. Where a criterion has several
+aspects, choose the band that best fits all of them together. Use the Erfüllung descriptors for the
+Aufgabe named in the task. The Leitpunkte are the Sprachfunktionen.
+${SCHREIBEN_KRITERIEN}
+A submission can be flawless German and still get E on Erfüllung by being far too short or missing the
+topic. Judge Erfüllung against the task, not against the quality of the German. Write each comment in
+English and name the descriptor that decided the band.
 
 THE THREE REWRITES. All three rewrite the learner's WHOLE submission, not a single sentence.
 - correct: the minimal repair. Keep their content, their structure and their voice; fix only what is
@@ -179,6 +184,14 @@ export function buildUserPrompt(opts: {
     `THE LEARNER WROTE (${wordCount} words, in ${Math.round(secondsSpent / 60)} minutes):`,
     submission,
   ];
+
+  if (wordCount < task.targetWords * 0.5) {
+    lines.push(
+      '',
+      `LENGTH: ${wordCount} words is less than 50 % of the required ${task.targetWords}. Under the`,
+      'official descriptor this is Erfüllung E, which makes the whole Aufgabe worth 0 points. Say so.',
+    );
+  }
 
   if (recentPatterns?.length) {
     lines.push(
