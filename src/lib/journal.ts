@@ -19,6 +19,7 @@ import {
   sprechenMax,
   sprechenTeil2Total,
 } from './bewertung';
+import { type AttemptRecord, parseAttemptRecord } from './patterns';
 import type { SpeakingFeedback, SpeakingTask } from './speaking';
 import { categoryLabel } from './taxonomy';
 import type { Attempt } from './types';
@@ -95,6 +96,22 @@ async function storedFolder(): Promise<DirHandle | null> {
 export async function folderName(): Promise<string | null> {
   const dir = await storedFolder();
   return dir?.name ?? null;
+}
+
+export type FolderAccess = 'unsupported' | 'none' | 'needs-permission' | 'ready';
+
+/**
+ * storedFolder() answers null both when no folder was ever chosen and when the
+ * grant lapsed on reload; a screen offering "reconnect" has to tell them apart.
+ * Never prompts.
+ */
+export async function folderAccess(): Promise<FolderAccess> {
+  if (!isSupported()) return 'unsupported';
+  const handle = await idbGet<DirHandle>(HANDLE_KEY);
+  if (!handle) return 'none';
+  return (await handle.queryPermission({ mode: 'readwrite' })) === 'granted'
+    ? 'ready'
+    : 'needs-permission';
 }
 
 /** Re-grants access after a page reload. Must be called from a user gesture. */
@@ -263,14 +280,45 @@ function patternsToMarkdown(patterns: PatternCount[], attempts: number): string 
   ].join('\n');
 }
 
+const isAttemptFile = (entry: { kind: string; name: string }): boolean =>
+  entry.kind === 'file' && entry.name.endsWith('.md') && entry.name !== 'mistakes.md';
+
 async function countAttemptFiles(): Promise<number> {
   const dir = await storedFolder();
   if (!dir) return 0;
   let n = 0;
   for await (const entry of dir.values()) {
-    if (entry.kind === 'file' && entry.name.endsWith('.md') && entry.name !== 'mistakes.md') n++;
+    if (isAttemptFile(entry)) n++;
   }
   return n;
+}
+
+/**
+ * Every Attempt file in the folder, parsed for the pattern view. A file that cannot be
+ * read or has no usable frontmatter is counted, not thrown on, so one bad file
+ * cannot hide the rest. Null when the grant is gone, so a lapsed folder is not
+ * mistaken for an empty one.
+ */
+export async function readAttemptRecords(): Promise<{
+  records: AttemptRecord[];
+  unreadable: number;
+} | null> {
+  const dir = await storedFolder();
+  if (!dir) return null;
+  const records: AttemptRecord[] = [];
+  let unreadable = 0;
+  for await (const entry of dir.values()) {
+    if (!isAttemptFile(entry)) continue;
+    try {
+      const file = await (await dir.getFileHandle(entry.name)).getFile();
+      const record = parseAttemptRecord(await file.text());
+      if (record) records.push(record);
+      else unreadable++;
+    } catch {
+      unreadable++;
+    }
+  }
+  return { records, unreadable };
 }
 
 /** Folds new Error categories into mistakes.md. Skill-agnostic on purpose: a

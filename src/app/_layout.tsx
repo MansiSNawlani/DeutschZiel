@@ -17,6 +17,7 @@ export default function RootLayout() {
         }}>
         <Stack.Screen name="index" options={{ title: 'DeutschZiel · Schreiben' }} />
         <Stack.Screen name="sprechen" options={{ title: 'DeutschZiel · Sprechen' }} />
+        <Stack.Screen name="muster" options={{ title: 'Fehlermuster' }} />
         <Stack.Screen name="settings" options={{ title: 'Einstellungen' }} />
       </Stack>
     </ThemeProvider>

@@ -74,12 +74,12 @@ export default function SprechenScreen() {
   }, [phase]);
 
   useEffect(() => {
-    if (phase !== 'grading') {
-      setWaiting(0);
-      return;
-    }
+    if (phase !== 'grading') return;
     const id = setInterval(() => setWaiting((n) => n + 1), 1000);
-    return () => clearInterval(id);
+    return () => {
+      clearInterval(id);
+      setWaiting(0);
+    };
   }, [phase]);
 
   // An object URL per recording; without this every retake leaks one.
@@ -562,11 +562,18 @@ function Header({ onBack }: { onBack?: () => void }) {
           </Pressable>
         </Link>
       )}
-      <Link href="/settings" asChild>
-        <Pressable>
-          <ThemedText type="linkPrimary">Einstellungen</ThemedText>
-        </Pressable>
-      </Link>
+      <View style={styles.row}>
+        <Link href="/muster" asChild>
+          <Pressable>
+            <ThemedText type="linkPrimary">Fehlermuster</ThemedText>
+          </Pressable>
+        </Link>
+        <Link href="/settings" asChild>
+          <Pressable>
+            <ThemedText type="linkPrimary">Einstellungen</ThemedText>
+          </Pressable>
+        </Link>
+      </View>
     </View>
   );
 }

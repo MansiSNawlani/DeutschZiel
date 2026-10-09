@@ -1,5 +1,5 @@
-import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -22,10 +22,12 @@ export default function SettingsScreen() {
   /** True while the list is open. Selecting collapses it, which is the confirmation. */
   const [picking, setPicking] = useState(false);
 
-  useEffect(() => {
-    setSettings(loadSettings());
-    void folderName().then(setFolder);
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      setSettings(loadSettings());
+      void folderName().then(setFolder);
+    }, []),
+  );
 
   // This screen is reached from both Schreiben and Sprechen but used to exit
   // only to Schreiben, which silently cost an in-progress Sprechen take:
@@ -44,21 +46,23 @@ export default function SettingsScreen() {
     });
   }, []);
 
+  const apiKey = settings?.apiKey;
+  const model = settings?.model;
   const fetchModels = useCallback(async () => {
-    if (!settings?.apiKey) return;
+    if (!apiKey) return;
     setLoading(true);
     setError(null);
     try {
-      const list = await listModels(settings.apiKey);
+      const list = await listModels(apiKey);
       setModels(list);
       setPicking(true);
-      if (!settings.model && list.length) update({ model: list[0].id });
+      if (!model && list.length) update({ model: list[0].id });
     } catch (e) {
       setError(e instanceof GeminiError ? e.message : String(e));
     } finally {
       setLoading(false);
     }
-  }, [settings?.apiKey, settings?.model, update]);
+  }, [apiKey, model, update]);
 
   const choose = useCallback(
     (model: string) => {

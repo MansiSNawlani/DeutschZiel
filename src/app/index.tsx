@@ -67,18 +67,21 @@ export default function SchreibenScreen() {
   }, []);
 
   // Restore an interrupted Aufgabe. Runs once, before anything can overwrite it.
+  // An effect, not lazy state: the draft is in localStorage, which the static web
+  // render cannot see, so reading it during render would break hydration.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     resume();
   }, [resume]);
 
   useEffect(() => {
     const busy = generating !== null || phase === 'grading';
-    if (!busy) {
-      setWaiting(0);
-      return;
-    }
+    if (!busy) return;
     const id = setInterval(() => setWaiting((n) => n + 1), 1000);
-    return () => clearInterval(id);
+    return () => {
+      clearInterval(id);
+      setWaiting(0);
+    };
   }, [generating, phase]);
 
   // Advisory only — the clock never locks the submit button. Hard locks make you
@@ -246,6 +249,11 @@ export default function SchreibenScreen() {
             <Link href="/sprechen" asChild>
               <Pressable>
                 <ThemedText type="linkPrimary">Sprechen →</ThemedText>
+              </Pressable>
+            </Link>
+            <Link href="/muster" asChild>
+              <Pressable>
+                <ThemedText type="linkPrimary">Fehlermuster</ThemedText>
               </Pressable>
             </Link>
             <Link href="/settings" asChild>
