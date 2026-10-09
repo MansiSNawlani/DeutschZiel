@@ -10,10 +10,12 @@
 
 export type MistakeExample = { category: string; wrote: string; correction: string };
 
+export type Skill = 'schreiben' | 'sprechen';
+
 export type AttemptRecord = {
   date: string;
   categories: string[];
-  skill: 'schreiben' | 'sprechen';
+  skill: Skill;
   /** Parsed from the Mistakes section; may be shorter than categories if a line is malformed. */
   examples: MistakeExample[];
 };
@@ -42,7 +44,7 @@ export type PatternRow = {
 export const RECENT_ATTEMPTS = 2;
 
 /** Both writers in journal.ts emit: - `category` **what was written** → **correction** */
-const MISTAKE_LINE = /^- `([a-z-]+)` \*\*(.+?)\*\* → \*\*(.+?)\*\*\s*$/;
+export const MISTAKE_LINE = /^- `([a-z-]+)` \*\*(.+?)\*\* → \*\*(.+?)\*\*\s*$/;
 
 /** Reads one Attempt file. Null when its frontmatter is missing or incomplete. */
 export function parseAttemptRecord(markdown: string): AttemptRecord | null {

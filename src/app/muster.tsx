@@ -1,63 +1,27 @@
-import { Link, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { Link } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { JournalStatus, Notice } from '@/components/journal-status';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { useJournal } from '@/hooks/use-journal';
 import { useTheme } from '@/hooks/use-theme';
-import { type FolderAccess, folderAccess, readAttemptRecords, reconnectFolder } from '@/lib/journal';
+import { readAttemptRecords } from '@/lib/journal';
 import { type PatternRow, summarisePatterns } from '@/lib/patterns';
 import { categoryLabel } from '@/lib/taxonomy';
 
-type Phase = 'loading' | FolderAccess | 'error';
-
 type PatternSummary = { rows: PatternRow[]; attempts: number; unreadable: number };
 
+async function readPatterns(): Promise<PatternSummary | null> {
+  const read = await readAttemptRecords();
+  if (!read) return null;
+  const { records, unreadable } = read;
+  return { rows: summarisePatterns(records), attempts: records.length, unreadable };
+}
+
 export default function MusterScreen() {
-  const theme = useTheme();
-  const [phase, setPhase] = useState<Phase>('loading');
-  const [journal, setJournal] = useState<PatternSummary | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    setPhase('loading');
-    setError(null);
-    try {
-      const access = await folderAccess();
-      if (access !== 'ready') {
-        setPhase(access);
-        return;
-      }
-      const read = await readAttemptRecords();
-      if (!read) {
-        setPhase('needs-permission');
-        return;
-      }
-      const { records, unreadable } = read;
-      setJournal({ rows: summarisePatterns(records), attempts: records.length, unreadable });
-      setPhase('ready');
-    } catch (e) {
-      setError(String(e));
-      setPhase('error');
-    }
-  }, []);
-
-  // Focus, not mount: coming back from a new Attempt should show fresh counts.
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
-
-  const reconnect = useCallback(async () => {
-    try {
-      if (await reconnectFolder()) await load();
-    } catch (e) {
-      setError(String(e));
-      setPhase('error');
-    }
-  }, [load]);
+  const { phase, data: journal, error, reconnect } = useJournal(readPatterns);
 
   return (
     <ThemedView style={styles.root}>
@@ -66,6 +30,11 @@ export default function MusterScreen() {
           <View style={styles.headerRow}>
             <ThemedText type="subtitle">Fehlermuster</ThemedText>
             <View style={styles.row}>
+              <Link href="/verlauf" asChild>
+                <Pressable>
+                  <ThemedText type="linkPrimary">Verlauf</ThemedText>
+                </Pressable>
+              </Link>
               <Link href="/" asChild>
                 <Pressable>
                   <ThemedText type="linkPrimary">Schreiben</ThemedText>
@@ -83,55 +52,12 @@ export default function MusterScreen() {
             and Sprechen together.
           </ThemedText>
 
-          {phase === 'loading' && (
-            <ThemedText type="small" themeColor="textSecondary">
-              Lese Journal…
-            </ThemedText>
-          )}
-
-          {phase === 'unsupported' && (
-            <Notice title="Journal nicht lesbar">
-              Reading the journal folder needs the File System Access API, which means Chrome or
-              Edge. Attempts saved here were downloaded instead, and downloads cannot be read back.
-            </Notice>
-          )}
-
-          {phase === 'none' && (
-            <Notice
-              title="Kein Journal-Ordner"
-              action={
-                <Link href="/settings" asChild>
-                  <Pressable>
-                    <ThemedText type="linkPrimary">Einstellungen öffnen →</ThemedText>
-                  </Pressable>
-                </Link>
-              }>
-              Choose your journal/ folder in Einstellungen, and the patterns from every Attempt
-              in it appear here.
-            </Notice>
-          )}
-
-          {phase === 'needs-permission' && (
-            <Notice
-              title="Zugriff erneuern"
-              action={
-                <Pressable
-                  onPress={reconnect}
-                  style={[styles.button, { backgroundColor: theme.primary }]}>
-                  <ThemedText type="smallBold" style={styles.onPrimary}>
-                    Journal verbinden
-                  </ThemedText>
-                </Pressable>
-              }>
-              The browser asks again for access to the journal folder after a reload.
-            </Notice>
-          )}
-
-          {phase === 'error' && (
-            <Notice title="Fehler beim Lesen" tone="danger">
-              {error}
-            </Notice>
-          )}
+          <JournalStatus
+            phase={phase}
+            error={error}
+            reconnect={reconnect}
+            noFolderText="Choose your journal/ folder in Einstellungen, and the patterns from every Attempt in it appear here."
+          />
 
           {phase === 'ready' && journal && <Patterns journal={journal} />}
         </View>
@@ -251,34 +177,6 @@ function FocusCard({ row, attempts }: { row: PatternRow; attempts: number }) {
   );
 }
 
-function Notice({
-  title,
-  tone,
-  action,
-  children,
-}: {
-  title: string;
-  tone?: 'danger';
-  action?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  const theme = useTheme();
-  return (
-    <ThemedView
-      type="backgroundElement"
-      style={[
-        styles.card,
-        tone && [styles.edged, { backgroundColor: theme.dangerSoft, borderColor: theme.danger }],
-      ]}>
-      <ThemedText type="smallBold" themeColor={tone}>
-        {title}
-      </ThemedText>
-      <ThemedText type="small">{children}</ThemedText>
-      {action}
-    </ThemedView>
-  );
-}
-
 const styles = StyleSheet.create({
   root: { flex: 1 },
   scroll: { padding: Spacing.three, alignItems: 'center' },
@@ -293,13 +191,6 @@ const styles = StyleSheet.create({
   card: { gap: Spacing.two, padding: Spacing.three, borderRadius: Spacing.three },
   edged: { borderWidth: StyleSheet.hairlineWidth, borderLeftWidth: 4 },
   sectionTitle: { letterSpacing: 1 },
-  button: {
-    alignSelf: 'flex-start',
-    paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.three,
-    borderRadius: Spacing.two,
-  },
-  onPrimary: { color: '#FFFFFF' },
   listRow: { flexDirection: 'row', justifyContent: 'space-between', gap: Spacing.two },
   struck: { textDecorationLine: 'line-through' },
 });

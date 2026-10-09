@@ -563,6 +563,11 @@ function Header({ onBack }: { onBack?: () => void }) {
         </Link>
       )}
       <View style={styles.row}>
+        <Link href="/verlauf" asChild>
+          <Pressable>
+            <ThemedText type="linkPrimary">Verlauf</ThemedText>
+          </Pressable>
+        </Link>
         <Link href="/muster" asChild>
           <Pressable>
             <ThemedText type="linkPrimary">Fehlermuster</ThemedText>

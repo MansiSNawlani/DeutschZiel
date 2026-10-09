@@ -154,7 +154,7 @@ function OutsideWortliste({ feedback, task }: { feedback: Feedback; task: Task }
   );
 }
 
-type Tone = 'primary' | 'success' | 'warning' | 'danger' | 'accent';
+export type Tone = 'primary' | 'success' | 'warning' | 'danger' | 'accent';
 
 /** A card whose left edge carries the section's meaning. */
 function Section({

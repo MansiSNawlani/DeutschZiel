@@ -294,29 +294,55 @@ async function countAttemptFiles(): Promise<number> {
 }
 
 /**
- * Every Attempt file in the folder, parsed for the pattern view. A file that cannot be
- * read or has no usable frontmatter is counted, not thrown on, so one bad file
- * cannot hide the rest. Null when the grant is gone, so a lapsed folder is not
- * mistaken for an empty one.
+ * Every Attempt file in the folder, as raw text. A file that cannot be read is
+ * counted, not thrown on, so one bad file cannot hide the rest. Null when the
+ * grant is gone, so a lapsed folder is not mistaken for an empty one.
  */
-export async function readAttemptRecords(): Promise<{
-  records: AttemptRecord[];
+export async function readAttemptFiles(): Promise<{
+  files: { name: string; text: string }[];
   unreadable: number;
 } | null> {
   const dir = await storedFolder();
   if (!dir) return null;
-  const records: AttemptRecord[] = [];
+  const files: { name: string; text: string }[] = [];
   let unreadable = 0;
   for await (const entry of dir.values()) {
     if (!isAttemptFile(entry)) continue;
     try {
       const file = await (await dir.getFileHandle(entry.name)).getFile();
-      const record = parseAttemptRecord(await file.text());
-      if (record) records.push(record);
-      else unreadable++;
+      files.push({ name: entry.name, text: await file.text() });
     } catch {
       unreadable++;
     }
+  }
+  return { files, unreadable };
+}
+
+/**
+ * One Attempt file by name. Refuses anything that is not an Attempt file, so a
+ * name taken from the URL cannot reach mistakes.md.
+ */
+export async function readAttemptFile(name: string): Promise<string | null> {
+  if (!isAttemptFile({ kind: 'file', name })) return null;
+  return readFile(name);
+}
+
+/**
+ * Every Attempt file parsed for the pattern view. A file with no usable
+ * frontmatter counts as unreadable. Null when the grant is gone.
+ */
+export async function readAttemptRecords(): Promise<{
+  records: AttemptRecord[];
+  unreadable: number;
+} | null> {
+  const read = await readAttemptFiles();
+  if (!read) return null;
+  const records: AttemptRecord[] = [];
+  let unreadable = read.unreadable;
+  for (const { text } of read.files) {
+    const record = parseAttemptRecord(text);
+    if (record) records.push(record);
+    else unreadable++;
   }
   return { records, unreadable };
 }
